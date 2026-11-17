@@ -1,6 +1,6 @@
 # Da Reunião ao Documento: Design Docs Gerados por IA
 
-> **Status:** em andamento. Fases 0 e 1 concluídas; os documentos ainda não foram redigidos.
+> **Status:** em andamento. Fases 0, 1 e 2 concluídas: o inventário e os 7 ADRs estão prontos; RFC, FDD, PRD e Tracker ainda não foram redigidos.
 
 ## Sobre o desafio
 
@@ -30,6 +30,7 @@ Fases concluídas:
 
 1. **Fase 0, contextualização.** A IA leu o enunciado, a transcrição e o código e devolveu um mapa dos pontos em que a feature toca o sistema, além de 9 divergências entre o que a reunião afirma sobre o código e o que o código realmente tem. Decidi como registrar cada uma.
 2. **Fase 1, inventário da transcrição.** O resultado é uma tabela cronológica com 107 pontos da reunião, cada um classificado e com minuto, falante e citação. À parte ficaram 5 falas corrigidas depois, 2 decisões tomadas após o resumo final e a lista do que foi decidido mas não entrou no resumo. Depois da conferência, o inventário final, já com a leitura adotada para cada ambiguidade, foi gravado em [docs/INVENTARIO.md](docs/INVENTARIO.md). As 124 citações do arquivo foram conferidas por comando contra a transcrição. Esse inventário é o gabarito dos documentos.
+3. **Fase 2, ADRs.** As decisões, como quais ADRs deveriam ser criados e seus nomes, foram definidas antes de qualquer redação dos documentos propriamente ditos, como o enunciado sugere. Aprovei uma lista de 7 ADRs e o prompt antes da redação. A IA redigiu os rascunhos e entregou a autocrítica contra as fontes; as correções vieram em voltas sucessivas, cada uma com antes e depois dos trechos alterados. Antes de aprovar, pedi duas auditorias independentes: em cada uma, um agente de IA sem acesso à conversa confrontou os ADRs com a transcrição, o código e o inventário, e cada achado foi conferido nas fontes antes de chegar a mim para decisão. A cada volta, um comando conferiu citações, minutos e falantes, caminhos de código e referências. Nesta fase o inventário também ganhou o registro das 9 divergências entre a reunião e o código, e passou a ter 139 citações, todas reconferidas. Os ADRs estão em [docs/adrs/](docs/adrs/), com índice em [docs/adrs/README.md](docs/adrs/README.md).
 
 ## Prompts customizados
 
@@ -37,6 +38,38 @@ Prompt da Fase 1, que gerou o inventário:
 
 ```text
 Monte uma tabela única, em ordem cronológica, classificando cada ponto substantivo da reunião: decisão fechada, requisito funcional, requisito não funcional, restrição, alternativa descartada (com o motivo dito na reunião), item adiado para fase futura, questão em aberto, detalhe técnico secundário, informação de contexto ou prazo. Cada linha com timestamp, falante e citação curta. Destaque à parte: falas corrigidas depois, e tudo o que foi decidido após o resumo final. Eu confiro por amostragem e decido as ambiguidades que você apontar. Depois disso, grave o inventário final, já com as decisões tomadas, em docs/INVENTARIO.md: ele é o gabarito de todos os documentos e do Tracker.
+```
+
+Prompt da Fase 2, usado para cada um dos 7 ADRs:
+
+```text
+Escreva o ADR "<título>" em docs/adrs/ADR-NNN-<titulo-em-kebab-case>.md, em português do Brasil, no formato MADR.
+
+Fontes permitidas: somente TRANSCRICAO.md e o código do repositório. Use as linhas do inventário <I-xx a I-yy>.
+
+Seções, nesta ordem: Status; Contexto; Decisão; Alternativas Consideradas; Consequências (Positivas, Negativas, Trade-off); Referências.
+
+O que entra:
+- Status: "Aceito", com a referência à reunião técnica e os participantes que decidiram o ponto.
+- Contexto: o problema específico deste sistema que forçou a decisão, com o trecho de código afetado quando houver (caminho real).
+- Decisão: uma única decisão, em uma a três frases afirmativas, com os números exatos ditos na reunião.
+- Alternativas: só as que foram ditas na reunião, cada uma com o motivo do descarte, o minuto e o falante. Se a reunião não discutiu alternativa, apresente uma plausível e marque "não discutida na reunião".
+- Consequências: positivas e negativas que a reunião reconheceu, com minuto e falante. Consequência derivada do código vem com o caminho do arquivo. O trade-off em uma frase no formato "aceitamos X para obter Y".
+- Referências: minutos e falantes usados, arquivos de código citados e links relativos para os ADRs relacionados.
+
+O que não entra:
+- Detalhe de implementação que pertence ao FDD: schema de tabela, contrato HTTP, pseudocódigo, nome de campo que a reunião não disse.
+- Motivação de negócio além de uma frase de contexto; o resto pertence ao PRD.
+- Uma segunda decisão: se o texto precisar dela, aponte para o ADR correspondente.
+- Benefício, risco ou número sem origem. Menção a IA.
+
+Regras:
+- Vale a versão final das falas corrigidas.
+- Item adiado ou em aberto aparece só como consequência ou limitação, nunca como parte da decisão.
+- Cada caminho de arquivo citado precisa existir no repositório.
+- Cada citação precisa estar na fala daquele participante naquele minuto.
+
+Tamanho: uma página, no máximo uma e meia.
 ```
 
 ## Iterações e ajustes
@@ -53,7 +86,19 @@ Nenhum documento foi redigido até aqui, então ainda não houve iteração de d
 - **"Os últimos 100 webhooks" podia ser regra ou exemplo.** A dúvida foi apontada pela IA na Fase 1, com três formas de registrar. Decidi tratar a fala como exemplo: o histórico de entregas segue a paginação que o projeto já usa, sem limite inventado.
 - **Uma armadilha fora do plano inicial.** O plano previa três tipos de armadilha na transcrição: itens descartados ou adiados, falas corrigidas e decisões tomadas depois do resumo final. O inventário mostrou um quarto: itens decididos antes do resumo que ficaram fora dele, como o timeout de 10 segundos e o limite de 64 KB.
 
+### Fase 2
+
+Os 7 ADRs passaram por 8 voltas de revisão até a aprovação. Em cada volta, citações, minutos, falantes e caminhos de código foram conferidos por comando. Os ajustes principais:
+
+- **A garantia do outbox estava maior do que a reunião decidiu.** O rascunho do ADR-001 dizia que toda mudança de status tem o seu evento registrado. Isso contradiz o filtro aplicado na inserção: sem webhook inscrito naquele status, nada é gravado. O erro foi apontado pela IA na autocrítica.
+- **Consequências deduzidas, sem origem.** A autocrítica listou oito trechos que eram dedução lógica da IA, não ditos por ninguém na reunião, e propôs mantê-los marcados. Lembrei que o enunciado só aceita informação rastreável à transcrição ou ao código, pedi a conferência no enunciado e decidi que os trechos saíam. A regra passou a valer para os próximos documentos: nenhuma derivação própria, com a única exceção que o enunciado prevê, a alternativa plausível em ADR.
+- **Conclusão tirada do código sem demonstração.** O ADR-006 dizia que a proteção do replay herdava a fragilidade do cadastro aberto de usuários. Decidi que, sendo conclusão tirada do código, ela devia estar documentada: o ADR agora mostra o caminho arquivo por arquivo.
+- **Detalhes fora da altura do ADR.** Os índices da tabela, os itens do payload e o limite de 64 KB saíram dos ADRs e ficam reservados para o FDD. Foram apontados pela autocrítica e pela segunda auditoria.
+- **Primeira auditoria independente.** Não achou fato errado, mas 12 inconsistências se confirmaram na conferência. Quatro exemplos: o ADR-006 listava Sofia entre quem decidiu um ponto fechado depois de ela sair da chamada; o ADR-003 citava a versão inicial de uma fala corrigida mais tarde; o ADR-002 dizia "exigiria" onde Diego disse "dá pra"; o trade-off do ADR-007 aceitava e obtinha a mesma coisa.
+- **Correções que criaram problemas novos.** A segunda auditoria mostrou que três ajustes anteriores tinham piorado o texto. O encurtamento de um trecho do ADR-001 transformou uma pergunta de Bruno em afirmação. A retirada da revisão de segurança do ADR-004, somada à frase "a reunião não apontou custo", contradizia uma exigência de Sofia. O filtro do ADR-001, movido para as consequências, deixou a decisão incondicional; neste ponto os dois revisores discordaram entre si. Decidi devolver a revisão de segurança ao ADR-004 e manter o filtro como condição dentro da frase da decisão.
+- **Erros no gabarito.** A segunda auditoria também achou dois erros no registro das divergências do inventário: uma fala de Sofia sobre roles sustentava algo que ela não disse, e "todas as rotas" ignorava a rota `/health`. Antes disso, ao gravar as divergências, a IA corrigiu uma contagem própria: as transições de status permitidas são 7, e não 8.
+
 
 ## Como navegar a entrega
 
-Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
+Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
