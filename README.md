@@ -1,6 +1,6 @@
 # Da Reunião ao Documento: Design Docs Gerados por IA
 
-> **Status:** em andamento. Fases 0, 1, 2 e 3 concluídas: o inventário, os 7 ADRs e o RFC estão prontos; FDD, PRD e Tracker ainda não foram redigidos.
+> **Status:** em andamento. Fases 0 a 4 concluídas: o inventário, os 7 ADRs, o RFC e o FDD estão prontos; PRD e Tracker ainda não foram redigidos.
 
 ## Sobre o desafio
 
@@ -32,6 +32,7 @@ Fases concluídas:
 2. **Fase 1, inventário da transcrição.** O resultado é uma tabela cronológica com 107 pontos da reunião, cada um classificado e com minuto, falante e citação. À parte ficaram 5 falas corrigidas depois, 2 decisões tomadas após o resumo final e a lista do que foi decidido mas não entrou no resumo. Depois da conferência, o inventário final, já com a leitura adotada para cada ambiguidade, foi gravado em [docs/INVENTARIO.md](docs/INVENTARIO.md). As 124 citações do arquivo foram conferidas por comando contra a transcrição. Esse inventário é o gabarito dos documentos.
 3. **Fase 2, ADRs.** As decisões, como quais ADRs deveriam ser criados e seus nomes, foram definidas antes de qualquer redação dos documentos propriamente ditos, como o enunciado sugere. Aprovei uma lista de 7 ADRs e o prompt antes da redação. A IA redigiu os rascunhos e entregou a autocrítica contra as fontes; as correções vieram em voltas sucessivas, cada uma com antes e depois dos trechos alterados. Antes de aprovar, pedi duas auditorias independentes: em cada uma, um agente de IA sem acesso à conversa confrontou os ADRs com a transcrição, o código e o inventário, e cada achado foi conferido nas fontes antes de chegar a mim para decisão. A cada volta, um comando conferiu citações, minutos e falantes, caminhos de código e referências. Nesta fase o inventário também ganhou o registro das 9 divergências entre a reunião e o código, e passou a ter 139 citações, todas reconferidas. Os ADRs estão em [docs/adrs/](docs/adrs/), com índice em [docs/adrs/README.md](docs/adrs/README.md).
 4. **Fase 3, RFC.** O RFC consolida a proposta técnica em cima dos ADRs: o fluxo da solução aponta para o ADR de cada passo em vez de repetir a justificativa. Defini o autor e a data dos metadados; os revisores são os cinco participantes da reunião. O ciclo foi o mesmo dos ADRs: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes, que pedi antes de aprovar. Nesta fase ficou traçada a fronteira dos riscos entre os documentos: o RFC traz os de arquitetura e de segurança, o PRD os de negócio e de prazo, e o FDD os de implementação. O RFC está em [docs/RFC.md](docs/RFC.md).
+5. **Fase 4, FDD.** É o documento em que a reunião tem menos a dizer: ela não deu nome de campo, status HTTP nem métrica. Aprovei uma convenção de três origens, visíveis em cada afirmação: fala da reunião, com minuto e falante; arquivo de código existente; ou proposta do documento, marcada e numerada. As 27 propostas estão reunidas na última seção do FDD, cada uma com a fala ou o arquivo que a tornou necessária, e continuam sendo propostas, sujeitas à revisão do time. O que não dava para propor com segurança ficou como questão em aberto. O ciclo foi o mesmo: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes. O FDD está em [docs/FDD.md](docs/FDD.md).
 
 ## Prompts customizados
 
@@ -104,6 +105,34 @@ Regras:
 Tamanho: 2 a 4 páginas.
 ```
 
+Prompt da Fase 4, que gerou o FDD:
+
+```text
+Escreva docs/FDD.md, o detalhamento de implementação do Sistema de Webhooks de Notificação de Pedidos, em português do Brasil, acionável o bastante para um desenvolvedor começar a codar.
+
+Fontes permitidas: TRANSCRICAO.md, o código do repositório, os 7 ADRs e o RFC já aprovados. Use o inventário (docs/INVENTARIO.md) como gabarito, com as leituras AMB e as divergências DIV adotadas.
+
+Seções: Contexto e motivação técnica; Objetivos técnicos; Escopo e exclusões; Modelo de dados; Fluxos detalhados (criação do evento na outbox, processamento pelo worker, retry, DLQ); Contratos públicos (endpoints com exemplo de request e response, headers, status codes); Matriz de erros com códigos WEBHOOK_*; Estratégias de resiliência; Observabilidade (métricas, logs, tracing); Integração com o sistema existente; Dependências e compatibilidade; Critérios de aceite técnicos; Riscos e mitigação.
+
+Origem de cada afirmação, sempre visível:
+- Reunião: minuto e falante.
+- Código: caminho de arquivo que existe. Quando a reunião não definiu um ponto e o código tem um padrão, siga o padrão e cite o arquivo.
+- Proposta: ponto que nem a reunião nem o código definem e sem o qual o documento não é implementável. Marque como "Proposta P-nn", diga a fala ou o arquivo que tornou a definição necessária e reúna todas em uma seção final. Não proponha número sem origem.
+- O que não der para propor com segurança vai para "Questões em aberto".
+
+O que entra:
+- Contratos com o prefixo /api/v1 do código, campos em camelCase nos endpoints e snake_case no payload do webhook, como dito na reunião.
+- "Integração com o sistema existente": o que muda ou como é usado cada arquivo real, apontando para o ADR-006 em vez de repetir a tabela dele. Arquivos novos aparecem só pelo nome, com o diretório existente à parte.
+- Riscos de implementação apenas; os de arquitetura e segurança estão no RFC, os de negócio e prazo no PRD.
+
+O que não entra:
+- Justificativa das decisões (ADRs), proposta e alternativas (RFC), requisitos de produto, métricas de sucesso e prazo (PRD).
+- Pontos que a reunião não tratou e que o autor decidiu deixar fora de todos os documentos.
+- Pergunta virando afirmação, oferta virando fato, verbo mais forte que a fala. Menção a IA.
+
+Regras: entre falas em conflito vale a mais nova; item adiado ou descartado só aparece em exclusões; cada caminho citado precisa existir; cada referência precisa corresponder ao que a pessoa disse naquele minuto.
+```
+
 ## Iterações e ajustes
 
 ### Fases 0 e 1
@@ -141,7 +170,20 @@ O RFC passou por 6 voltas de revisão até a aprovação, com a mesma conferênc
 - **Uma correção que tirou demais.** Ao mover o prazo para o PRD, o RFC ficou sem a revisão de segurança antes do deploy, a única restrição que Sofia repetiu no fim da reunião. A primeira auditoria apontou, e a linha voltou, apontando para o ADR-004.
 - **Um desvio que já estava nos ADRs.** A auditoria de fechamento notou que uma fala citada como origem era a pergunta de Bruno, e não a confirmação de Sofia. O mesmo padrão estava no ADR-004, já aprovado, e foi corrigido nos dois documentos.
 
+### Fase 4
+
+O FDD passou por 6 voltas de revisão até a aprovação, com a mesma conferência por comando a cada volta. Os ajustes principais:
+
+- **A regra de não deduzir contra um documento que exige detalhe.** A regra fixada na Fase 2 não permitia um FDD implementável só com as falas. A IA propôs a convenção de três origens, e eu a aprovei. Aceitei as sete propostas de maior peso, como a granularidade da outbox e o significado do status "falhou", com a condição de que continuassem marcadas como propostas.
+- **Afirmações sem marca.** Mesmo com a convenção, pontos de desenho passaram como se fossem fato. A autocrítica apontou nove e a primeira auditoria mais sete, entre eles os campos editáveis do webhook, a posição da chamada dentro da transação e o formato das respostas de rotação e de replay. Todos viraram proposta marcada.
+- **Critério de aceite em risco.** A autocrítica notou que só um endpoint tinha request e response explícitos, e o enunciado pede quatro. Os sete endpoints passaram a ter os dois blocos.
+- **Propostas que se contradiziam.** A primeira auditoria mostrou que verificar o limite de 64 KB na inserção faz a rota de mudança de status responder um erro novo, o que contradizia a proposta de que nenhuma rota existente muda. Mostrou também que o modelo não dizia se as tabelas novas têm chave estrangeira; a conferência no código confirmou que pedidos e clientes são apagados fisicamente, então a escolha muda o comportamento de rotas que já existem. Aceitei as recomendações: a exceção ficou declarada, e as chaves estrangeiras viraram uma proposta própria.
+- **Um erro do módulo sem o prefixo.** O cadastro com cliente inexistente respondia `NOT_FOUND`, contra a fala de Larissa de que tudo no módulo leva o prefixo `WEBHOOK_`. A primeira auditoria apontou; o código passou a ser `WEBHOOK_CUSTOMER_NOT_FOUND`.
+- **Erros sobre o código.** A primeira auditoria achou dois: o tipo `TxClient` não é exportado pelo arquivo de pedidos, e o worker não precisa criar uma instância do Prisma, porque o arquivo de configuração já a cria ao ser importado. A auditoria de fechamento achou um terceiro, na descrição do arquivo de rotas.
+- **Os mesmos desvios de fala.** Duas perguntas de Bruno apareceram como afirmação ou como origem de uma decisão, e a secret vazada "em log de aplicação dele", do cliente, tinha virado risco de log da plataforma. As duas auditorias apontaram.
+- **Uma correção que introduziu erro.** Ao aplicar a proposta das chaves estrangeiras, o texto passou a citar um campo que a tabela de tentativas não tem. A auditoria de fechamento apontou, e o texto foi corrigido.
+
 
 ## Como navegar a entrega
 
-Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`, e o RFC em `docs/RFC.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
+Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`, o RFC em `docs/RFC.md` e o FDD em `docs/FDD.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
