@@ -36,7 +36,7 @@ Uma única secret para assinar os webhooks de todos os clientes. Descartada porq
 ### Negativas
 
 - A implementação de HMAC e da geração de secret passa por revisão de segurança antes do deploy, com pelo menos dois dias úteis reservados ([09:46] Sofia).
-- A plataforma gera a secret de cada endpoint ([09:31] Marcos), guarda-a na configuração do webhook ([09:21] Bruno), oferece a rotação pela API e mantém a secret antiga válida por 24 horas depois dela ([09:21] Sofia).
+- A plataforma gera a secret de cada endpoint ([09:31] Marcos), guarda-a na configuração do webhook ([09:21] Bruno; [09:21] Sofia), oferece a rotação pela API e mantém a secret antiga válida por 24 horas depois dela ([09:21] Sofia).
 
 ### Trade-off
 

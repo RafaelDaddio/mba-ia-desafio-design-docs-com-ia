@@ -1,6 +1,6 @@
 # Da Reunião ao Documento: Design Docs Gerados por IA
 
-> **Status:** em andamento. Fases 0, 1 e 2 concluídas: o inventário e os 7 ADRs estão prontos; RFC, FDD, PRD e Tracker ainda não foram redigidos.
+> **Status:** em andamento. Fases 0, 1, 2 e 3 concluídas: o inventário, os 7 ADRs e o RFC estão prontos; FDD, PRD e Tracker ainda não foram redigidos.
 
 ## Sobre o desafio
 
@@ -31,6 +31,7 @@ Fases concluídas:
 1. **Fase 0, contextualização.** A IA leu o enunciado, a transcrição e o código e devolveu um mapa dos pontos em que a feature toca o sistema, além de 9 divergências entre o que a reunião afirma sobre o código e o que o código realmente tem. Decidi como registrar cada uma.
 2. **Fase 1, inventário da transcrição.** O resultado é uma tabela cronológica com 107 pontos da reunião, cada um classificado e com minuto, falante e citação. À parte ficaram 5 falas corrigidas depois, 2 decisões tomadas após o resumo final e a lista do que foi decidido mas não entrou no resumo. Depois da conferência, o inventário final, já com a leitura adotada para cada ambiguidade, foi gravado em [docs/INVENTARIO.md](docs/INVENTARIO.md). As 124 citações do arquivo foram conferidas por comando contra a transcrição. Esse inventário é o gabarito dos documentos.
 3. **Fase 2, ADRs.** As decisões, como quais ADRs deveriam ser criados e seus nomes, foram definidas antes de qualquer redação dos documentos propriamente ditos, como o enunciado sugere. Aprovei uma lista de 7 ADRs e o prompt antes da redação. A IA redigiu os rascunhos e entregou a autocrítica contra as fontes; as correções vieram em voltas sucessivas, cada uma com antes e depois dos trechos alterados. Antes de aprovar, pedi duas auditorias independentes: em cada uma, um agente de IA sem acesso à conversa confrontou os ADRs com a transcrição, o código e o inventário, e cada achado foi conferido nas fontes antes de chegar a mim para decisão. A cada volta, um comando conferiu citações, minutos e falantes, caminhos de código e referências. Nesta fase o inventário também ganhou o registro das 9 divergências entre a reunião e o código, e passou a ter 139 citações, todas reconferidas. Os ADRs estão em [docs/adrs/](docs/adrs/), com índice em [docs/adrs/README.md](docs/adrs/README.md).
+4. **Fase 3, RFC.** O RFC consolida a proposta técnica em cima dos ADRs: o fluxo da solução aponta para o ADR de cada passo em vez de repetir a justificativa. Defini o autor e a data dos metadados; os revisores são os cinco participantes da reunião. O ciclo foi o mesmo dos ADRs: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes, que pedi antes de aprovar. Nesta fase ficou traçada a fronteira dos riscos entre os documentos: o RFC traz os de arquitetura e de segurança, o PRD os de negócio e de prazo, e o FDD os de implementação. O RFC está em [docs/RFC.md](docs/RFC.md).
 
 ## Prompts customizados
 
@@ -72,6 +73,37 @@ Regras:
 Tamanho: uma página, no máximo uma e meia.
 ```
 
+Prompt da Fase 3, que gerou o RFC:
+
+```text
+Escreva docs/RFC.md, a proposta técnica do Sistema de Webhooks de Notificação de Pedidos, em português do Brasil, como documento submetido à equipe para revisão.
+
+Fontes permitidas: TRANSCRICAO.md, o código do repositório e os 7 ADRs já aprovados em docs/adrs/. Use o inventário (docs/INVENTARIO.md) como gabarito, com as leituras AMB e as divergências DIV já adotadas.
+
+Seções, nesta ordem: Metadados (autor, status, data, revisores); Resumo executivo; Contexto e problema; Proposta técnica; Alternativas consideradas; Questões em aberto; Impacto e riscos; Decisões relacionadas.
+
+O que entra:
+- Metadados: autor Rafael D'Addio, data de hoje, status "Em revisão", revisores = os cinco participantes da reunião com o papel de cada um.
+- Proposta técnica: a solução em nível de arquitetura, do cadastro do webhook à DLQ, em um fluxo de poucos passos. Cada passo aponta para o ADR que o decide, com link relativo, em vez de repetir a justificativa.
+- Alternativas consideradas: as de alcance arquitetural que a reunião descartou, cada uma com o trade-off que levou ao descarte, minuto e falante. As alternativas locais ficam nos ADRs; cite-as em uma linha.
+- Questões em aberto: só o que a reunião adiou ou não decidiu, separando "não decidido" de "adiado para fase futura". Questão que nasce do código entra com o caminho do arquivo.
+- Impacto e riscos: o que muda no sistema existente (com caminho real) e os riscos que a reunião reconheceu ou que o código mostra, com o tratamento dado na reunião quando houve.
+
+O que não entra:
+- Detalhe do FDD: contrato HTTP, schema de tabela, matriz de erros, pseudocódigo, lista de headers campo a campo.
+- Requisitos funcionais um a um, métricas e público-alvo: pertencem ao PRD.
+- Justificativa completa de cada decisão: pertence ao ADR.
+- Qualquer afirmação sem origem na transcrição ou no código: nada de consequência, benefício ou vínculo causal deduzido. Mitigação que a reunião não deu não é inventada. Menção a IA.
+
+Regras:
+- Entre duas falas em conflito, vale a mais nova.
+- Item adiado ou em aberto nunca aparece como parte da proposta.
+- Rota citada de fala fica como foi dita; rota citada do código usa o caminho real.
+- Cada caminho de arquivo precisa existir; cada referência [hh:mm] Nome precisa corresponder ao que a pessoa disse naquele minuto.
+
+Tamanho: 2 a 4 páginas.
+```
+
 ## Iterações e ajustes
 
 ### Fases 0 e 1
@@ -98,7 +130,18 @@ Os 7 ADRs passaram por 8 voltas de revisão até a aprovação. Em cada volta, c
 - **Correções que criaram problemas novos.** A segunda auditoria mostrou que três ajustes anteriores tinham piorado o texto. O encurtamento de um trecho do ADR-001 transformou uma pergunta de Bruno em afirmação. A retirada da revisão de segurança do ADR-004, somada à frase "a reunião não apontou custo", contradizia uma exigência de Sofia. O filtro do ADR-001, movido para as consequências, deixou a decisão incondicional; neste ponto os dois revisores discordaram entre si. Decidi devolver a revisão de segurança ao ADR-004 e manter o filtro como condição dentro da frase da decisão.
 - **Erros no gabarito.** A segunda auditoria também achou dois erros no registro das divergências do inventário: uma fala de Sofia sobre roles sustentava algo que ela não disse, e "todas as rotas" ignorava a rota `/health`. Antes disso, ao gravar as divergências, a IA corrigiu uma contagem própria: as transições de status permitidas são 7, e não 8.
 
+### Fase 3
+
+O RFC passou por 6 voltas de revisão até a aprovação, com a mesma conferência por comando a cada volta. Os ajustes principais:
+
+- **Frases mais fortes que as falas.** Foi o desvio mais frequente do rascunho. A autocrítica apontou quatro casos e as duas auditorias acharam outros do mesmo tipo. Perguntas viraram afirmações: "seria mais reativa", onde Bruno perguntou se a trigger não seria, e "ele recebe 50 chamadas", onde Diego perguntou. Uma oferta virou fato: "documentada no portal", onde Marcos disse "eu posso documentar". Um verbo cresceu: "pediu", onde Diego disse "vale registrar".
+- **O filtro perdeu o cliente.** O RFC dizia que o evento é gravado quando "há webhook inscrito naquele status". Lido ao pé da letra, o webhook de qualquer cliente bastaria. A primeira auditoria apontou, e o texto passou a dizer "webhook do cliente do pedido".
+- **Dois prazos para o mesmo cliente.** A IA registrou como ambiguidade as falas "fim do trimestre" e "fim de novembro". Decidi que, entre falas em conflito, vale sempre a mais nova, e que prazo e risco de negócio saem do RFC e ficam para o PRD.
+- **Conteúdo na altura errada.** O código de erro para URL http, que na Fase 0 ficou como questão em aberto, estava entre as questões de arquitetura do RFC. A primeira auditoria lembrou que a própria Sofia disse não se tratar de decisão arquitetural; a questão foi para o FDD. O contexto, que repetia o ADR-001, foi resumido.
+- **Uma correção que tirou demais.** Ao mover o prazo para o PRD, o RFC ficou sem a revisão de segurança antes do deploy, a única restrição que Sofia repetiu no fim da reunião. A primeira auditoria apontou, e a linha voltou, apontando para o ADR-004.
+- **Um desvio que já estava nos ADRs.** A auditoria de fechamento notou que uma fala citada como origem era a pergunta de Bruno, e não a confirmação de Sofia. O mesmo padrão estava no ADR-004, já aprovado, e foi corrigido nos dois documentos.
+
 
 ## Como navegar a entrega
 
-Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
+Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`, e o RFC em `docs/RFC.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
