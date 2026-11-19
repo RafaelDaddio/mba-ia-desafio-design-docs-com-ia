@@ -43,7 +43,7 @@ Publicar o evento em uma fila externa. Descartado porque exigiria subir infraest
 ### Negativas
 
 - A transação do `changeStatus` ganha mais uma escrita, e uma falha nessa escrita desfaz a mudança de status ([09:40] Bruno: “Se a outbox falhar de inserir, rollback.”).
-- A entrega não é imediata: o evento espera o ciclo de leitura do worker, com latência de 2 segundos no pior caso ([09:10] Larissa; [ADR-002](ADR-002-worker-em-processo-separado-com-polling.md)).
+- A entrega não é imediata: o evento espera até 2 segundos pelo ciclo de leitura do worker ([09:10] Larissa; [ADR-002](ADR-002-worker-em-processo-separado-com-polling.md)).
 - Bruno perguntou se o acúmulo de eventos na tabela deixaria o worker lento ([09:07] Bruno); Diego respondeu com a forma de leitura e os índices da tabela ([09:08] Diego). O arquivamento das linhas já entregues ficou fora do escopo desta feature ([09:08] Diego).
 
 ### Trade-off

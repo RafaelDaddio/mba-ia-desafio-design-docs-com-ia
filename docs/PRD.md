@@ -67,7 +67,7 @@ A reunião não definiu outras metas, como taxa de entrega ou número de cliente
 | Garantia de ordem global | Sem garantia; os clientes não pediram | [09:13] Larissa; [09:14] Marcos |
 | Vários workers em paralelo | Adiado | [09:13] Diego |
 | Arquivamento das linhas entregues da outbox | Fora do escopo desta feature | [09:08] Diego |
-| Restrição de roles no CRUD de configuração | Adiada | [09:37] Sofia |
+| Restrição de roles no CRUD de configuração | Aberto a qualquer role autenticada nesta fase: “Mais pra frente a gente pode endurecer.” | [09:37] Sofia |
 
 ## 6. Requisitos funcionais
 

@@ -20,7 +20,7 @@ Três clientes B2B pediram para ser avisados quando o status dos seus pedidos mu
 - cada requisição é assinada com HMAC-SHA256, com uma secret por endpoint;
 - a garantia é at-least-once, e o cliente deduplica pelo header `X-Event-Id`.
 
-Dois pontos não estão decididos: o rate limiting de envio e a forma de identificar o cliente no cadastro do webhook. Este RFC registra outros quatro pontos adiados ou fora do escopo desta feature. Todos estão na seção "Questões em aberto".
+No nível desta proposta, dois pontos não estão decididos: o rate limiting de envio e a forma de identificar o cliente no cadastro do webhook. Este RFC registra outros cinco pontos adiados ou fora do escopo desta feature. Todos estão na seção "Questões em aberto". As questões de detalhe de implementação estão no [ADR-006](adrs/ADR-006-reuso-dos-padroes-existentes-do-projeto.md) e na seção 14 do [FDD](FDD.md).
 
 ## Contexto e problema
 
@@ -84,6 +84,7 @@ As alternativas de alcance local estão nos ADRs: retry indefinido, três tentat
 | Alerta por email ao cliente quando o webhook dele falha. | Fica para a próxima fase. | [09:37] Larissa; [09:48] Larissa |
 | Restringir as roles do CRUD de configuração, aberto a qualquer role autenticada nesta fase. | “Mais pra frente a gente pode endurecer.” | [09:37] Sofia |
 | Arquivamento das linhas já entregues da outbox. | “depois de 30 dias ou assim, fora do escopo dessa feature” | [09:08] Diego |
+| Painel visual para o cliente. | Só endpoints nesta feature: “Painel é projeto separado do time de frontend.” | [09:40] Larissa |
 
 ## Impacto e riscos
 
@@ -91,7 +92,7 @@ As alternativas de alcance local estão nos ADRs: retry indefinido, três tentat
 
 - **Transação do `changeStatus`** (`src/modules/orders/order.service.ts`). Ganha a gravação na outbox; se ela falhar, a mudança de status é desfeita ([09:40] Bruno).
 - **Processos.** A aplicação tem hoje um único entry point, `src/server.ts`. O worker pede um entry point e um script novos ([09:11] Larissa).
-- **Banco.** Entram tabelas para a outbox ([09:06] Diego), a DLQ ([09:18] Diego) e a configuração dos webhooks ([09:21] Bruno; [09:21] Sofia), no MySQL que já existe ([09:07] Diego).
+- **Banco.** Entram tabelas para a outbox ([09:06] Diego), a DLQ ([09:18] Diego) e a configuração dos webhooks ([09:21] Bruno; [09:21] Sofia), no MySQL que já existe ([09:07] Diego). O histórico de entregas ([09:34] Marcos) também precisa ser guardado; a tabela para isso é proposta do [FDD](FDD.md).
 - **Código.** Entra um módulo de webhooks em `src/modules/` ([09:27] Bruno). O middleware de erro não muda ([09:29] Bruno).
 - **Clientes.** Verificam a assinatura do lado deles ([09:20] Sofia) e precisam estar preparados para deduplicar pelo `X-Event-Id` ([09:24] Diego; [09:25] Diego). Marcos documenta a integração no portal ([09:40] Marcos).
 - **Deploy.** A implementação de HMAC e da geração de secret passa por revisão de segurança antes do deploy ([09:46] Sofia; [ADR-004](adrs/ADR-004-assinatura-hmac-sha256-com-secret-por-endpoint.md)).

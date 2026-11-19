@@ -48,7 +48,7 @@ A reunião fechou a arquitetura, registrada nos ADRs: outbox no MySQL ([ADR-001]
 | Alerta por email ao cliente | Próxima fase | [09:37] Larissa; [09:48] Larissa |
 | Rate limiting de envio | Observar e decidir depois | [09:39] Diego; [09:39] Larissa |
 | Painel visual | Fora: só endpoints | [09:40] Larissa |
-| Restrição de roles no CRUD de configuração | Adiada | [09:37] Sofia |
+| Restrição de roles no CRUD de configuração | Aberto a qualquer role autenticada nesta fase: “Mais pra frente a gente pode endurecer.” | [09:37] Sofia |
 
 ## 4. Modelo de dados
 
@@ -64,9 +64,9 @@ As tabelas novas seguem o que `prisma/schema.prisma` já faz: id `String @id @de
 
 Detalhes do modelo:
 
-- **Status da outbox.** Os quatro valores ditos na reunião são pendente, processando, falhou e entregue ([09:08] Diego), aqui `PENDING`, `PROCESSING`, `FAILED` e `DELIVERED`. A leitura de `FAILED` é a **Proposta P-04**: a última tentativa falhou e há retentativa agendada.
+- **Status da outbox.** Os quatro valores ditos na reunião são pendente, processando, falhou e entregue ([09:08] Diego), aqui `PENDING`, `PROCESSING`, `FAILED` e `DELIVERED`. A leitura de `FAILED` é a **Proposta P-04**: a última tentativa falhou e há retentativa agendada. Não é a alternativa descartada no [ADR-003](adrs/ADR-003-retry-com-backoff-exponencial-e-dlq.md): a falha permanente continua indo para a tabela separada.
 - **Índices.** A outbox tem índice em `status` e em `createdAt` ([09:08] Diego).
-- **Granularidade.** Cada linha da outbox representa um evento para um webhook. Uma mudança de status gera uma linha para cada webhook do cliente inscrito naquele status. O `id` da linha é o identificador do evento, enviado no header `X-Event-Id` (**Proposta P-02**).
+- **Granularidade.** Cada linha da outbox representa um evento para um webhook. Uma mudança de status gera uma linha para cada webhook do cliente inscrito naquele status. O `id` da linha é o identificador do evento, enviado no header `X-Event-Id` (**Proposta P-02**). Neste documento, um evento é esse par de mudança de status e webhook. A reunião falou em uma linha com o evento ([09:06] Diego), e é nesse sentido que os ADRs e o RFC usam o termo.
 - **Lista de status.** `statuses` guarda os valores de `OrderStatus` que o webhook quer receber ([09:33] Marcos), em uma coluna `Json`, tipo que o schema já usa em `Customer.address` (**Proposta P-01**).
 - **Referências.** `webhooks.customerId` e as colunas `webhookId` têm chave estrangeira. `orderId` é guardado sem chave estrangeira na outbox e na DLQ: o payload é um snapshot, e o pedido pode ser removido depois, já que `OrderRepository.deleteById` apaga a linha (`src/modules/orders/order.repository.ts`). O `eventId` das tentativas também fica sem chave estrangeira, porque a linha da outbox sai da tabela quando o evento vai para a DLQ (**Proposta P-26**).
 
@@ -80,12 +80,12 @@ O ponto de entrada é o `changeStatus` (`src/modules/orders/order.service.ts`). 
 2. Ainda dentro do `$transaction`, depois de gravar o histórico, ele chama `publishWebhookEvent`, exportada pelo módulo de webhooks (**Proposta P-27**).
 3. A função busca os webhooks do cliente do pedido inscritos no novo status. Só os ativos entram (**Proposta P-11**).
 4. Se não há nenhum, nada é inserido ([09:34] Bruno).
-5. Se há, a função monta o payload com os dados do pedido naquele momento ([09:52] Larissa) e insere uma linha `PENDING` por webhook (**Proposta P-02**).
+5. Se há, a função monta o payload com os dados do pedido naquele momento ([09:52] Larissa) e insere na outbox uma linha com status `PENDING` por webhook (**Proposta P-02**).
 6. Se a inserção falha, a exceção desfaz a transação inteira, e o status não muda ([09:40] Bruno).
 
 O limite de 64 KB do payload, com erro caso ultrapasse ([09:24] Larissa), é verificado no passo 5 (**Proposta P-22**). Como a verificação acontece dentro do `changeStatus`, o erro sai na rota de mudança de status do pedido.
 
-**Limitação conhecida.** Nenhuma transição leva a `PENDING` (`src/modules/orders/order.status.ts`), e a criação do pedido grava o histórico inicial sem passar pelo `changeStatus` (`src/modules/orders/order.service.ts`). Um webhook inscrito em `PENDING` nunca dispara.
+**Limitação conhecida.** Nenhuma transição de pedido leva ao status `PENDING` (`src/modules/orders/order.status.ts`), e a criação do pedido grava o histórico inicial sem passar pelo `changeStatus` (`src/modules/orders/order.service.ts`). Um webhook inscrito no status de pedido `PENDING` nunca dispara.
 
 ### 5.2 Processamento pelo worker
 
@@ -158,7 +158,7 @@ A cada falha com retentativa restante, o worker incrementa `attempts`, grava em 
 | `GET /api/v1/webhooks/:id/deliveries` | Histórico de entregas | Qualquer role autenticada (**Proposta P-10**) | [09:34] Marcos |
 | `POST /api/v1/admin/webhooks/dead-letter/:id/replay` | Recoloca um evento da DLQ na outbox | Role ADMIN | [09:35] Diego; [09:36] Sofia |
 
-A reunião definiu que o identificador do cliente não vem do JWT e vai no body ou no path, sem escolher entre os dois ([09:32] Larissa). Este documento usa `customerId` no body do cadastro e na query da listagem, como `createOrderSchema` e `listOrdersQuerySchema` já fazem em `src/modules/orders/order.schemas.ts` (**Proposta P-07**).
+A reunião definiu que o identificador do cliente não vem do JWT e vai no body ou no path, sem escolher entre os dois ([09:32] Larissa). Este documento usa `customerId` no body do cadastro e na query da listagem, como `createOrderSchema` e `listOrdersQuerySchema` já fazem em `src/modules/orders/order.schemas.ts` (**Proposta P-07**). A query não está entre as duas formas ditas na reunião; dentro da fala, a alternativa para a listagem seria o path.
 
 #### POST /api/v1/webhooks
 
@@ -427,7 +427,7 @@ Os erros do módulo derivam de `AppError` e usam o prefixo `WEBHOOK_` ([09:28] B
 | `WEBHOOK_CUSTOMER_NOT_FOUND` | 404 | O cliente informado no cadastro não existe | **Proposta P-24** |
 | `WEBHOOK_PAYLOAD_TOO_LARGE` | 422 | O payload passa de 64 KB. Sai na rota `PATCH /api/v1/orders/:id/status`, onde o evento é gravado | Limite e erro: [09:24] Larissa. Código e status HTTP: **Proposta P-16**. Momento da verificação: **Proposta P-22** |
 
-Bruno também citou `WEBHOOK_SECRET_REQUIRED` como exemplo ([09:28] Bruno). Depois disso a reunião definiu que a secret é gerada pela plataforma ([09:31] Marcos), então não há entrada em que ela falte, e o código fica fora da matriz.
+Bruno também citou `WEBHOOK_SECRET_REQUIRED` como exemplo ([09:28] Bruno). Depois disso a reunião definiu que a secret é gerada pela plataforma ([09:31] Marcos), então não há entrada em que ela falte. Deixar o código fora da matriz faz parte da **Proposta P-16**.
 
 Erros que chegam dos componentes reaproveitados, sem o prefixo:
 
@@ -460,11 +460,11 @@ A reunião tratou de log em dois pontos: o projeto usa Pino e nada novo entra ([
 
 ### Logs
 
-Os logs usam o logger de `src/shared/logger/index.ts`, com nome de evento em snake_case, como os `server_started` e `http_request` que o projeto já emite.
+Os logs usam o logger de `src/shared/logger/index.ts`, com nome de evento em snake_case, como os `server_started` e `http_request` que o projeto já emite (`src/server.ts`; `src/middlewares/request-logger.middleware.ts`).
 
 | Evento | Onde | Campos |
 | --- | --- | --- |
-| `webhook_event_enqueued` | `publishWebhookEvent` | `eventId`, `webhookId`, `orderId`, `toStatus` |
+| `webhook_event_recorded` | `publishWebhookEvent` | `eventId`, `webhookId`, `orderId`, `toStatus` |
 | `webhook_delivery_succeeded` | worker | `eventId`, `webhookId`, `orderId`, `attempt`, `responseStatus`, `durationMs` |
 | `webhook_delivery_failed` | worker | `eventId`, `webhookId`, `orderId`, `attempt`, `failureReason`, `durationMs`, `nextAttemptAt` |
 | `webhook_dead_lettered` | worker | `eventId`, `webhookId`, `orderId`, `failureReason` |
@@ -530,7 +530,7 @@ Arquivos novos:
 | Banco | O MySQL que já existe; nenhuma infraestrutura nova | [09:07] Diego |
 | Migrations | Feitas com o Prisma, pelo script `db:migrate` | `package.json` |
 | Runtime | Node 20 ou superior | `package.json` |
-| Cliente HTTP e HMAC | `package.json` não tem cliente HTTP. O worker usa o `fetch` e o módulo `crypto` do próprio Node, sem dependência nova (**Proposta P-21**) | `package.json` |
+| Cliente HTTP e HMAC | As dependências de runtime de `package.json` não têm cliente HTTP. O worker usa o `fetch` e o módulo `crypto` do próprio Node, sem dependência nova (**Proposta P-21**) | `package.json` |
 | Logger | Pino, já presente | [09:29] Bruno |
 | Processos | Passam a ser dois: a API e o worker, cada um com o seu script | [09:11] Diego; [09:11] Larissa |
 | API existente | Nenhuma rota atual muda de contrato, com uma exceção: o `PATCH /api/v1/orders/:id/status` pode responder `422 WEBHOOK_PAYLOAD_TOO_LARGE` (**Proposta P-22**; **Proposta P-25**). O efeito sobre a remoção de cliente está nas questões em aberto | `src/modules/orders/order.routes.ts` |
@@ -553,7 +553,7 @@ Esta seção traz os critérios que um teste consegue verificar. Os critérios d
 | 8 | Uma chamada sem resposta em 10 segundos conta como falha e entra em retry. | [09:42] Diego |
 | 9 | As retentativas seguem as esperas da tabela da [seção 5.3](#53-retry). | [09:17] Diego |
 | 10 | Depois da 5ª retentativa com falha, o evento está em `webhook_dead_letter`, com payload e motivo. | [09:15] Diego; [09:18] Diego |
-| 11 | O replay sem role ADMIN responde 403; com ADMIN, recoloca o evento como pendente e registra quem executou. | [09:36] Sofia; [09:36] Larissa |
+| 11 | O replay sem role ADMIN responde 403; com ADMIN, recoloca o evento como pendente e registra quem executou. | [09:18] Diego; [09:36] Sofia; [09:36] Larissa |
 | 12 | O cadastro com URL http é recusado. | [09:23] Sofia |
 | 13 | A secret é devolvida na criação e pode ser rotacionada pela API; a antiga vale por 24 horas. | [09:31] Marcos; [09:21] Sofia |
 | 14 | Um payload acima de 64 KB gera erro. | [09:24] Larissa |
@@ -566,11 +566,11 @@ Esta seção traz os riscos de implementação. Os de arquitetura e de seguranç
 
 | Risco | Origem | Mitigação |
 | --- | --- | --- |
-| A transação do `changeStatus`, que já é pesada, ganha uma leitura e uma escrita por webhook inscrito. | [09:04] Bruno; [09:40] Bruno | Índice em `customerId` na tabela `webhooks`, como a tabela `orders` já tem em `prisma/schema.prisma` (**Proposta P-01**). A reunião não tratou do custo adicional. |
+| A transação do `changeStatus`, que já é pesada, ganha uma leitura dos webhooks do cliente, exigida pelo filtro na inserção ([09:34] Bruno), e uma escrita por webhook inscrito, pela **Proposta P-02**. A reunião tratou de uma linha com o evento, e o [ADR-001](adrs/ADR-001-outbox-no-mysql.md) registra uma escrita. | [09:04] Bruno; [09:34] Bruno; [09:40] Bruno | Índice em `customerId` na tabela `webhooks`, como a tabela `orders` já tem em `prisma/schema.prisma` (**Proposta P-01**). A reunião não tratou do custo adicional. |
 | O acúmulo de linhas na outbox pode deixar a leitura do worker lenta, dúvida levantada por Bruno. | [09:07] Bruno | Índices em `status` e `createdAt` e leitura em lote pequeno ([09:08] Diego). O arquivamento ficou fora do escopo ([09:08] Diego). |
 | A secret aparece em log da plataforma. | `src/shared/logger/index.ts` | `*.secret` e `*.previousSecret` em `redactPaths` (**Proposta P-18**). |
 | Eventos ficam presos em `PROCESSING` se o worker cai no meio de um envio. | **Proposta P-04** | Devolver esses eventos a `PENDING` quando o worker inicia (**Proposta P-15**). |
-| A limpeza dos testes existentes falha por chave estrangeira se a tabela `webhooks` não for limpa antes de `customers` (**Proposta P-26**). | `tests/setup.ts` | Incluir as tabelas novas no `beforeEach`, antes de `customer`. |
+| A limpeza dos testes existentes falha por chave estrangeira se a tabela `webhooks` não for limpa antes da tabela de clientes (**Proposta P-26**). | `tests/setup.ts` | Incluir as tabelas novas no `beforeEach`, antes de `customer`. |
 | Respostas de autenticação e de role saem sem o prefixo `WEBHOOK_`. | `src/middlewares/auth.middleware.ts` | Aceito como limitação dos middlewares reaproveitados, descrita no [ADR-006](adrs/ADR-006-reuso-dos-padroes-existentes-do-projeto.md). |
 
 ## 14. Propostas deste documento e questões em aberto
@@ -596,7 +596,7 @@ Cada proposta cobre um ponto que a reunião não definiu. A coluna "Motivada por
 | P-13 | Sucesso é resposta 2xx dentro do timeout; qualquer outro resultado é falha. | [09:42] Diego |
 | P-14 | O replay recoloca o evento a partir do payload guardado na DLQ, com um ciclo novo de tentativas, e responde `200` com o id do registro da DLQ e o status `PENDING`. | [09:18] Diego |
 | P-15 | Ao iniciar, o worker devolve a `PENDING` os eventos em `PROCESSING`; ao receber `SIGINT` ou `SIGTERM`, encerra como o servidor. | [09:11] Diego; [09:12] Diego; `src/server.ts` |
-| P-16 | Códigos `WEBHOOK_DEAD_LETTER_NOT_FOUND` (404) e `WEBHOOK_PAYLOAD_TOO_LARGE` (422); regra de https verificada no service, para responder `WEBHOOK_INVALID_URL`; classes de erro novas no arquivo das classes existentes. | [09:29] Larissa; `src/shared/errors/http-errors.ts` |
+| P-16 | Códigos `WEBHOOK_DEAD_LETTER_NOT_FOUND` (404) e `WEBHOOK_PAYLOAD_TOO_LARGE` (422); regra de https verificada no service, para responder `WEBHOOK_INVALID_URL`; classes de erro novas no arquivo das classes existentes; `WEBHOOK_SECRET_REQUIRED` fora da matriz. | [09:28] Bruno; [09:29] Larissa; [09:31] Marcos; `src/shared/errors/http-errors.ts` |
 | P-17 | Arquivo de processamento com o nome `webhook.processor.ts`. | [09:28] Bruno |
 | P-18 | Eventos de log listados na seção 9; `*.secret` e `*.previousSecret` em `redactPaths`. | `src/shared/logger/index.ts` |
 | P-19 | Métricas tiradas das tabelas e dos logs, sem biblioteca nova. | `package.json` |

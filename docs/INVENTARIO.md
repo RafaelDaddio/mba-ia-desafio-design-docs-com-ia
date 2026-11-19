@@ -1,6 +1,6 @@
 # Inventário da transcrição
 
-Este arquivo registra, em ordem cronológica, cada ponto substantivo da reunião técnica sobre o Sistema de Webhooks de Notificação de Pedidos (`TRANSCRICAO.md`). É o gabarito usado para redigir o PRD, o RFC, o FDD, os ADRs e o Tracker: decisão, requisito, restrição, alternativa descartada ou item adiado só entra em um documento se estiver aqui ou tiver origem no código. Falas de apoio citadas nos documentos, como justificativas e exemplos, vêm direto da transcrição.
+Este arquivo registra, em ordem cronológica, cada ponto substantivo da reunião técnica sobre o Sistema de Webhooks de Notificação de Pedidos (`TRANSCRICAO.md`). É o gabarito usado para redigir o PRD, o RFC, o FDD, os ADRs e o Tracker: decisão, requisito, restrição, alternativa descartada ou item adiado só entra em um documento se estiver aqui ou tiver origem no código. Falas de apoio citadas nos documentos, como justificativas e exemplos, vêm direto da transcrição. As propostas marcadas do FDD, as avaliações, leituras e propostas declaradas do PRD e a alternativa plausível do ADR-006 não são itens da reunião: cobrem pontos que ela não definiu e vêm identificados como tais nos próprios documentos.
 
 ## Como ler
 
@@ -111,11 +111,11 @@ Classes usadas:
 | I-81 | 09:36 | Sofia | RF | Replay só para ADMIN | “Mexer em fila de entrega de notificação não é coisa de operador.” |
 | I-82 | 09:36 | Sofia | RF | Auditoria do replay | “o endpoint de admin tem que logar quem fez o replay, pra auditoria” |
 | I-83 | 09:36 | Larissa | DEC | Reuso do `requireRole` | “role ADMIN obrigatório no replay e a gente reaproveita o requireRole que já existe” |
-| I-84 | 09:37 | Sofia | DEC + ADI | CRUD aberto a qualquer role autenticada; endurecer depois | “Por enquanto sim. Mais pra frente a gente pode endurecer.” |
-| I-85 | 09:37 | Larissa | ADI | Alerta por email, pedido por Marcos [09:37] (versão final: ver correção COR-5) | “Email tá fora de escopo dessa fase. Talvez próxima fase, depois que a gente medir o impacto.” |
+| I-84 | 09:37 | Sofia | DEC | CRUD aberto a qualquer role autenticada; pode ser endurecido depois | “Por enquanto sim. Mais pra frente a gente pode endurecer.” |
+| I-85 | 09:37 | Larissa | ADI | Alerta por email, perguntado por Marcos [09:37] (versão final: ver correção COR-5) | “Email tá fora de escopo dessa fase. Talvez próxima fase, depois que a gente medir o impacto.” |
 | I-86 | 09:39 | Diego | QA | Rate limiting de saída, levantado por Diego [09:38] | “A gente observa e implementa se virar problema. Mas vale registrar como ponto em aberto.” |
 | I-87 | 09:39 | Larissa | QA | Encaminhamento do rate limiting | “Fica como "observar e decidir depois".” |
-| I-88 | 09:40 | Larissa | ADI | Dashboard visual, pedido por Marcos [09:39] | “Só endpoints. Painel é projeto separado do time de frontend.” |
+| I-88 | 09:40 | Larissa | ADI | Dashboard visual, perguntado por Marcos [09:39] | “Só endpoints. Painel é projeto separado do time de frontend.” |
 | I-89 | 09:40 | Marcos | CTX | Dependência: guia de integração no portal | “Eu documento no portal pros clientes saberem como integrar via API.” |
 | I-90 | 09:40 | Bruno | DEC | Falha ao gravar na outbox desfaz a mudança de status | “Se a outbox falhar de inserir, rollback. Não pode ter caso de status mudar e evento não sair.” |
 | I-91 | 09:41 | Bruno | DET | Função de publicação que recebe o `tx` | “publishWebhookEvent(tx, order, fromStatus, toStatus)” |

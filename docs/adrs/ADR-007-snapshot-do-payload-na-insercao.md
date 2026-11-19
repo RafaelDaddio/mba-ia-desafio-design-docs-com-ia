@@ -28,7 +28,7 @@ Descartada porque, se o pedido mudar depois, o evento deixaria de refletir o est
 
 ### Negativas
 
-- Cada linha da outbox guarda o payload inteiro, e não só o identificador do pedido ([09:51] Bruno).
+- A reunião não apontou custo para a escolha. O que a distingue da outra opção da pergunta de Bruno ([09:51] Bruno) é que cada linha da outbox guarda o payload inteiro, e não só o identificador do pedido ([09:52] Larissa).
 
 ### Trade-off
 
