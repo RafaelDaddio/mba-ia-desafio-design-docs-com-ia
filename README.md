@@ -1,6 +1,6 @@
 # Da Reunião ao Documento: Design Docs Gerados por IA
 
-> **Status:** em andamento. Fases 0 a 4 concluídas: o inventário, os 7 ADRs, o RFC e o FDD estão prontos; PRD e Tracker ainda não foram redigidos.
+> **Status:** em andamento. Fases 0 a 5 concluídas: o inventário, os 7 ADRs, o RFC, o FDD e o PRD estão prontos; o Tracker ainda não foi redigido.
 
 ## Sobre o desafio
 
@@ -14,7 +14,7 @@ O enunciado original está no [repositório base do desafio](https://github.com/
 
 A ferramenta foi utilizada para ler o código e a transcrição, mapear os pontos de integração, montar o inventário da reunião e conferir por comando cada citação e cada caminho de arquivo. 
 
-A ferramenta também foi utilizada para gerar os prompts e os rascunhos dos documentos mencionados acima, mas não para revisar ou aprovar. 
+A ferramenta também foi utilizada para gerar os prompts e os rascunhos dos documentos mencionados acima, e para realizar auditorias independentes, com agentes sem acesso à conversa, que me deram suporte na revisão. 
 
 A revisão e aprovação de cada fase e documento é feita por mim. Sou eu também quem definiu as regras do processo, decidi como registrar cada divergência e cada ambiguidade e aprovei cada etapa antes de seguir.
 
@@ -26,6 +26,8 @@ Fixei três regras antes de começar:
 - Cada documento passa por um ciclo: prompt dirigido, rascunho, autocrítica da IA contra as fontes, revisão humana, correção com antes e depois.
 - Os commits são feitos manualmente, um por fase aprovada.
 
+A partir da Fase 2, acrescentei um passo ao ciclo: antes de aprovar cada documento, um agente de IA sem acesso à conversa o confronta com a transcrição, o código e o inventário.
+
 Fases concluídas:
 
 1. **Fase 0, contextualização.** A IA leu o enunciado, a transcrição e o código e devolveu um mapa dos pontos em que a feature toca o sistema, além de 9 divergências entre o que a reunião afirma sobre o código e o que o código realmente tem. Decidi como registrar cada uma.
@@ -33,6 +35,7 @@ Fases concluídas:
 3. **Fase 2, ADRs.** As decisões, como quais ADRs deveriam ser criados e seus nomes, foram definidas antes de qualquer redação dos documentos propriamente ditos, como o enunciado sugere. Aprovei uma lista de 7 ADRs e o prompt antes da redação. A IA redigiu os rascunhos e entregou a autocrítica contra as fontes; as correções vieram em voltas sucessivas, cada uma com antes e depois dos trechos alterados. Antes de aprovar, pedi duas auditorias independentes: em cada uma, um agente de IA sem acesso à conversa confrontou os ADRs com a transcrição, o código e o inventário, e cada achado foi conferido nas fontes antes de chegar a mim para decisão. A cada volta, um comando conferiu citações, minutos e falantes, caminhos de código e referências. Nesta fase o inventário também ganhou o registro das 9 divergências entre a reunião e o código, e passou a ter 139 citações, todas reconferidas. Os ADRs estão em [docs/adrs/](docs/adrs/), com índice em [docs/adrs/README.md](docs/adrs/README.md).
 4. **Fase 3, RFC.** O RFC consolida a proposta técnica em cima dos ADRs: o fluxo da solução aponta para o ADR de cada passo em vez de repetir a justificativa. Defini o autor e a data dos metadados; os revisores são os cinco participantes da reunião. O ciclo foi o mesmo dos ADRs: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes, que pedi antes de aprovar. Nesta fase ficou traçada a fronteira dos riscos entre os documentos: o RFC traz os de arquitetura e de segurança, o PRD os de negócio e de prazo, e o FDD os de implementação. O RFC está em [docs/RFC.md](docs/RFC.md).
 5. **Fase 4, FDD.** É o documento em que a reunião tem menos a dizer: ela não deu nome de campo, status HTTP nem métrica. Aprovei uma convenção de três origens, visíveis em cada afirmação: fala da reunião, com minuto e falante; arquivo de código existente; ou proposta do documento, marcada e numerada. As 27 propostas estão reunidas na última seção do FDD, cada uma com a fala ou o arquivo que a tornou necessária, e continuam sendo propostas, sujeitas à revisão do time. O que não dava para propor com segurança ficou como questão em aberto. O ciclo foi o mesmo: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes. O FDD está em [docs/FDD.md](docs/FDD.md).
+6. **Fase 5, PRD.** O PRD foi escrito depois dos documentos técnicos e aponta para eles em vez de repetir: os contratos ficam no FDD, as justificativas nos ADRs e a proposta no RFC. Traz 16 requisitos funcionais e 12 não funcionais, cada um com minuto e falante, e um único objetivo com meta, porque a reunião só deu um número como meta. A reunião também não atribuiu probabilidade nem impacto a nenhum risco: as duas colunas são avaliação do documento e estão declaradas assim, como as leituras e as duas propostas de teste. Confirmei três escolhas de enquadramento: o prazo fica na seção de dependências, e não entre os objetivos; dois riscos que a reunião não formulou como risco ficam, declarados como formulação do documento; e as duas linhas de teste ficam como proposta. O ciclo foi o mesmo: prompt dirigido, rascunho, autocrítica contra as fontes, correções com antes e depois e duas auditorias independentes. O PRD está em [docs/PRD.md](docs/PRD.md).
 
 ## Prompts customizados
 
@@ -133,6 +136,33 @@ O que não entra:
 Regras: entre falas em conflito vale a mais nova; item adiado ou descartado só aparece em exclusões; cada caminho citado precisa existir; cada referência precisa corresponder ao que a pessoa disse naquele minuto.
 ```
 
+Prompt da Fase 5, que gerou o PRD:
+
+```text
+Escreva docs/PRD.md, o documento de requisitos de produto do Sistema de Webhooks de Notificação de Pedidos, em português do Brasil. Ele responde por que a feature existe e o que ela entrega.
+
+Fontes permitidas: TRANSCRICAO.md e o código do repositório. Use o inventário (docs/INVENTARIO.md) como gabarito e mantenha coerência com os ADRs, o RFC e o FDD já aprovados, apontando para eles em vez de repetir.
+
+Seções, nesta ordem: Resumo e contexto da feature; Problema e motivação; Público-alvo e cenários de uso; Objetivos e métricas de sucesso; Escopo (incluso e fora de escopo); Requisitos funcionais; Requisitos não funcionais; Decisões e trade-offs principais; Dependências; Riscos e mitigação; Critérios de aceitação; Estratégia de testes e validação.
+
+O que entra:
+- Requisitos funcionais numerados, pelo menos 8, cada um com minuto e falante. Só o que a reunião decidiu.
+- Pelo menos um objetivo com métrica e meta quantitativa dita na reunião. Não crie meta que ninguém disse; se a reunião não definiu, diga que não definiu.
+- Fora de escopo: tudo o que a reunião descartou ou adiou, com a situação de cada item.
+- Decisões e trade-offs: uma linha por decisão, com o que se aceitou em troca e o link do ADR.
+- Dependências, com o prazo pedido pelo cliente e a estimativa da reunião, sem converter sprints em datas.
+- Riscos de negócio e de prazo, com probabilidade, impacto e mitigação. Probabilidade e impacto são avaliação do documento e isso fica dito; a mitigação é a que a reunião deu, ou "não definida".
+- Critérios de aceitação de produto; os verificáveis por teste ficam no FDD.
+
+O que não entra:
+- Contrato HTTP, tabela, código de erro, fluxo: pertencem ao FDD.
+- Justificativa das decisões e alternativas descartadas: ADRs e RFC.
+- Riscos de arquitetura e segurança (RFC) e de implementação (FDD).
+- Pergunta virando afirmação, oferta virando fato, verbo mais forte que a fala. Item adiado como requisito. Menção a IA.
+
+Regras: entre falas em conflito vale a mais nova; o prazo é fim de novembro; cada referência precisa corresponder ao que a pessoa disse naquele minuto; cada caminho citado precisa existir.
+```
+
 ## Iterações e ajustes
 
 ### Fases 0 e 1
@@ -183,7 +213,20 @@ O FDD passou por 6 voltas de revisão até a aprovação, com a mesma conferênc
 - **Os mesmos desvios de fala.** Duas perguntas de Bruno apareceram como afirmação ou como origem de uma decisão, e a secret vazada "em log de aplicação dele", do cliente, tinha virado risco de log da plataforma. As duas auditorias apontaram.
 - **Uma correção que introduziu erro.** Ao aplicar a proposta das chaves estrangeiras, o texto passou a citar um campo que a tabela de tentativas não tem. A auditoria de fechamento apontou, e o texto foi corrigido.
 
+### Fase 5
+
+O PRD passou por 6 voltas de revisão até a aprovação, com a mesma conferência por comando a cada volta. Nenhuma das duas auditorias achou erro de atribuição ou de citação. Os ajustes principais:
+
+- **Metas que a reunião não deu como meta.** O rascunho tinha três objetivos: notificar em menos de 10 segundos, entregar até o fim de novembro e cobrir quase 15 horas de indisponibilidade do cliente. Só o primeiro foi dito como meta. A autocrítica apontou; o prazo foi para a seção de dependências e a janela de retentativas ficou como requisito não funcional.
+- **Detalhe do FDD dentro dos requisitos.** Nomes de header, os campos do payload e os cinco intervalos de retentativa estavam nos requisitos do PRD. A autocrítica apontou; o PRD passou a dizer o que o cliente recebe e a apontar para o FDD e para o ADR-003.
+- **Uma recomendação que pôs um critério em risco.** Na autocrítica, a IA recomendou trocar a mitigação do risco de perder a Atlas por "não definida na reunião", porque Marcos não apresentou as ações dele como resposta ao risco. Com isso só um risco ficou com probabilidade, impacto e mitigação, e o enunciado pede dois: o erro de contagem foi da IA. A primeira auditoria apontou. Aceitei a recomendação de devolver as duas ações de Marcos, agora com a ligação declarada como leitura do documento.
+- **Os 10 segundos medidos de três jeitos.** O objetivo, o requisito não funcional e o critério de aceitação diziam coisas diferentes, e o critério prometia que o cliente é notificado, o que não se sustenta com o cliente fora do ar. Marcos não disse de onde até onde se mede. A primeira auditoria apontou; os três passaram a medir da mudança de status até o envio, com essa leitura declarada.
+- **A limitação que o cliente enxerga.** Um webhook inscrito em `PENDING` nunca dispara, e isso estava só no FDD. A primeira auditoria pediu a frase no PRD; a auditoria de fechamento notou que ela dava só metade da causa, e o texto foi completado com a criação do pedido.
+- **Uma correção que deixou resto.** O "ponta a ponta" de Larissa tinha ganhado um complemento que ela não disse. O corte feito depois da primeira auditoria ainda deixou a cobertura dos testes atribuída a ela; a auditoria de fechamento apontou, e a linha passou a dizer que a reunião não detalhou.
+- **Um requisito que faltava.** O horário do envio, que Diego incluiu para o cliente poder detectar replay attack, não estava entre os requisitos. A auditoria de fechamento apontou, e ele entrou como RF-16.
+- **Um ponto que ficou como está.** A auditoria de fechamento notou que a ordem por pedido não se sustenta quando um evento entra em retentativa. A reunião afirmou a ordem antes de discutir o retry e não voltou ao assunto. Mantive a decisão da Fase 4 de deixar fora dos documentos os pontos que a reunião não tratou: o PRD repete a fala de Diego, sem ressalva própria.
+
 
 ## Como navegar a entrega
 
-Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`, o RFC em `docs/RFC.md` e o FDD em `docs/FDD.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
+Os documentos ficam em `docs/` (`PRD.md`, `RFC.md`, `FDD.md`, `TRACKER.md` e `adrs/`). O inventário da transcrição está em `docs/INVENTARIO.md`. Os ADRs já estão prontos em `docs/adrs/`, com índice em `docs/adrs/README.md`, o RFC em `docs/RFC.md`, o FDD em `docs/FDD.md` e o PRD em `docs/PRD.md`. Os caminhos finais e a ordem de leitura sugerida entram aqui no fechamento.
